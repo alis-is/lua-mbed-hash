@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-HASH_EXPORT int luaopen_hash (lua_State *L);
+HASH_EXPORT int luaopen_lmbed_hash (lua_State *L);
 
 #ifdef __cplusplus
 }

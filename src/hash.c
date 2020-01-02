@@ -194,10 +194,9 @@ static const struct luaL_Reg lua_hash[] = {
     {"sha512_finish", l_sha512_finish},
     {NULL, NULL}};
 
-int luaopen_hash(lua_State *L)
+int luaopen_lmbed_hash(lua_State *L)
 {
     lua_newtable(L);
     luaL_setfuncs(L, lua_hash, 0);
-
     return 1;
 }
