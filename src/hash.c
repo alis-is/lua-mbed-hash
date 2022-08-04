@@ -15,16 +15,6 @@ static void to_hex(const unsigned char *input, unsigned char output[], size_t le
         sprintf(output + 2 * i, "%.2x", input[i]);
 }
 
-static void from_hex(const unsigned char *input, unsigned char output[], size_t len)
-{
-    unsigned int u;
-    for (int i = 0; i < len / 2; i++)
-    {
-        sscanf(input + i * 2, "%2x", &u);
-        output[i] = u;
-    }
-}
-
 int l_sha256sum(lua_State *L)
 {
     size_t len;
@@ -70,35 +60,18 @@ int l_sha512sum(lua_State *L)
 int l_equals(lua_State *L)
 {
     size_t len1, len2;
-    lua_settop(L, 3);
+    lua_settop(L, 2);
     const unsigned char *hash1 = luaL_checklstring(L, 1, &len1);
     const unsigned char *hash2 = luaL_checklstring(L, 1, &len2);
-    const int hex = lua_toboolean(L, 2);
     int equals = 0;
     if (len1 != len2)
     {
         lua_pushboolean(L, equals);
         return 1;
     }
-    if (hex)
-    {
-        unsigned char *_hash1 = malloc(len1 / 2);
-        unsigned char *_hash2 = malloc(len2 / 2);
 
-        from_hex(hash1, _hash1, len1);
-        from_hex(hash2, _hash2, len2);
-
-        int cmp = memcmp(hash1, hash2, len1);
-        lua_pushboolean(L, cmp == 0);
-
-        free((void *)_hash1);
-        free((void *)_hash2);
-    }
-    else
-    {
-        int cmp = memcmp(hash1, hash2, len1);
-        lua_pushboolean(L, cmp == 0);
-    }
+    int cmp = memcmp(hash1, hash2, len1);
+    lua_pushboolean(L, cmp == 0);
     return 1;
 }
 
