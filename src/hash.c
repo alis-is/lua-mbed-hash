@@ -107,7 +107,7 @@ int l_sha256_init(lua_State *L)
     lua_settop(L, 0);
     mbedtls_sha256_context *ctx = lua_newuserdata(L, sizeof(mbedtls_sha256_context));
     mbedtls_sha256_init(ctx);
-    mbedtls_sha256_starts_ret(ctx, 0);
+    mbedtls_sha256_starts(ctx, 0);
     return 1;
 }
 
@@ -117,7 +117,7 @@ int l_sha256_update(lua_State *L)
     size_t len;
     mbedtls_sha256_context *ctx = lua_touserdata(L, 1);
     const char *buffer = luaL_checklstring(L, 2, &len);
-    mbedtls_sha256_update_ret(ctx, buffer, len);
+    mbedtls_sha256_update(ctx, buffer, len);
     return 1;
 }
 
@@ -127,7 +127,7 @@ int l_sha256_finish(lua_State *L)
     mbedtls_sha256_context *ctx = lua_touserdata(L, 1);
     const int hex = lua_toboolean(L, 2);
     unsigned char output[32];
-    mbedtls_sha256_finish_ret(ctx, output);
+    mbedtls_sha256_finish(ctx, output);
     mbedtls_sha256_free(ctx);
     if (hex)
     {
@@ -147,7 +147,7 @@ int l_sha512_init(lua_State *L)
     lua_settop(L, 0);
     mbedtls_sha512_context *ctx = lua_newuserdata(L, sizeof(mbedtls_sha512_context));
     mbedtls_sha512_init(ctx);
-    mbedtls_sha512_starts_ret(ctx, 0);
+    mbedtls_sha512_starts(ctx, 0);
     return 1;
 }
 
@@ -157,7 +157,7 @@ int l_sha512_update(lua_State *L)
     size_t len;
     mbedtls_sha512_context *ctx = lua_touserdata(L, 1);
     const char *buffer = luaL_checklstring(L, 2, &len);
-    mbedtls_sha512_update_ret(ctx, buffer, len);
+    mbedtls_sha512_update(ctx, buffer, len);
     return 1;
 }
 
@@ -167,7 +167,7 @@ int l_sha512_finish(lua_State *L)
     mbedtls_sha512_context *ctx = lua_touserdata(L, 1);
     const int hex = lua_toboolean(L, 2);
     unsigned char output[64];
-    mbedtls_sha512_finish_ret(ctx, output);
+    mbedtls_sha512_finish(ctx, output);
     mbedtls_sha512_free(ctx);
     if (hex)
     {
