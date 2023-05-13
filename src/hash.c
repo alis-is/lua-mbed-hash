@@ -9,12 +9,18 @@
 #include <lualib.h>
 #include <string.h>
 
-static void to_hex(const unsigned char *const input, unsigned char *const output,
-                   size_t len) {
-  for (int i = 0; i < len; i++)
-    sprintf((char *)output + 2 * i, "%.2x", input[i]);
+char char_to_hex(unsigned char value) {
+  static const char hex_chars[] = "0123456789abcdef";
+  return hex_chars[value & 0xf];
 }
 
+static void to_hex(const unsigned char *const input,
+                   unsigned char *const output, size_t len) {
+  for (size_t i = 0; i < len; ++i) {
+    output[2 * i] = char_to_hex(input[i] >> 4);
+    output[2 * i + 1] = char_to_hex(input[i]);
+  }
+}
 static char hex_char_to_lower(const char ch) {
   if (ch >= 'A' && ch <= 'F')
     return 'a' + (ch - 'A');
@@ -24,7 +30,8 @@ static char hex_char_to_lower(const char ch) {
 int l_sha256sum(lua_State *L) {
   size_t len;
   lua_settop(L, 2);
-  const unsigned char *buffer = (const unsigned char *)luaL_checklstring(L, 1, &len);
+  const unsigned char *buffer =
+      (const unsigned char *)luaL_checklstring(L, 1, &len);
   const int hex = lua_toboolean(L, 2);
   unsigned char output[32];
   mbedtls_sha256(buffer, len, output, 0);
@@ -41,7 +48,8 @@ int l_sha256sum(lua_State *L) {
 int l_sha512sum(lua_State *L) {
   size_t len;
   lua_settop(L, 2);
-  const unsigned char *buffer = (const unsigned char *)luaL_checklstring(L, 1, &len);
+  const unsigned char *buffer =
+      (const unsigned char *)luaL_checklstring(L, 1, &len);
   const int hex = lua_toboolean(L, 2);
   unsigned char output[64];
   mbedtls_sha512(buffer, len, output, 0);
@@ -58,8 +66,10 @@ int l_sha512sum(lua_State *L) {
 int l_equals(lua_State *L) {
   size_t len1, len2;
   lua_settop(L, 3);
-  const unsigned char *hash1 = (const unsigned char *)luaL_checklstring(L, 1, &len1);
-  const unsigned char *hash2 = (const unsigned char *)luaL_checklstring(L, 2, &len2);
+  const unsigned char *hash1 =
+      (const unsigned char *)luaL_checklstring(L, 1, &len1);
+  const unsigned char *hash2 =
+      (const unsigned char *)luaL_checklstring(L, 2, &len2);
   const int hex = lua_toboolean(L, 3);
   if (hex) {
     // skip leading 0x
@@ -107,7 +117,8 @@ int l_sha256_update(lua_State *L) {
   lua_settop(L, 2);
   size_t len;
   mbedtls_sha256_context *ctx = lua_touserdata(L, 1);
-  const unsigned char *buffer = (const unsigned char *)luaL_checklstring(L, 2, &len);
+  const unsigned char *buffer =
+      (const unsigned char *)luaL_checklstring(L, 2, &len);
   mbedtls_sha256_update(ctx, buffer, len);
   return 1;
 }
@@ -142,7 +153,8 @@ int l_sha512_update(lua_State *L) {
   lua_settop(L, 2);
   size_t len;
   mbedtls_sha512_context *ctx = lua_touserdata(L, 1);
-  const unsigned char *buffer = (const unsigned char *)luaL_checklstring(L, 2, &len);
+  const unsigned char *buffer =
+      (const unsigned char *)luaL_checklstring(L, 2, &len);
   mbedtls_sha512_update(ctx, buffer, len);
   return 1;
 }
