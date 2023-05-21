@@ -1,9 +1,11 @@
 #include "mbedtls/md.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/sha512.h"
+#include "mbedtls/error.h"
 
 #include "mbedtls/platform.h"
 
+#include "hash.h"
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
@@ -34,7 +36,14 @@ int l_sha256sum(lua_State *L) {
       (const unsigned char *)luaL_checklstring(L, 1, &len);
   const int hex = lua_toboolean(L, 2);
   unsigned char output[32];
-  mbedtls_sha256(buffer, len, output, 0);
+  int ret = mbedtls_sha256(buffer, len, output, 0);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
   if (hex) {
     unsigned char hexOutput[64];
     to_hex(output, hexOutput, 32);
@@ -52,7 +61,15 @@ int l_sha512sum(lua_State *L) {
       (const unsigned char *)luaL_checklstring(L, 1, &len);
   const int hex = lua_toboolean(L, 2);
   unsigned char output[64];
-  mbedtls_sha512(buffer, len, output, 0);
+  int ret = mbedtls_sha512(buffer, len, output, 0);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
+
   if (hex) {
     unsigned char hexOutput[128];
     to_hex(output, hexOutput, 64);
@@ -106,30 +123,70 @@ int l_equals(lua_State *L) {
 
 int l_sha256_init(lua_State *L) {
   lua_settop(L, 0);
-  mbedtls_sha256_context *ctx =
-      lua_newuserdata(L, sizeof(mbedtls_sha256_context));
-  mbedtls_sha256_init(ctx);
-  mbedtls_sha256_starts(ctx, 0);
+  SHA256_CONTEXT *context = lua_newuserdata(L, sizeof(SHA256_CONTEXT));
+  context->ctx = malloc(sizeof(mbedtls_sha256_context));
+  context->closed = 0;
+  if (context->ctx == NULL) {
+    lua_pushnil(L);
+    lua_pushstring(L, "failed to allocate memory");
+    return 2;
+  }
+  mbedtls_sha256_init(context->ctx);
+  int ret = mbedtls_sha256_starts(context->ctx, 0);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
+  luaL_getmetatable(L, SHA256_CONTEXT_METATABLE);
+  lua_setmetatable(L, -2);
   return 1;
 }
 
 int l_sha256_update(lua_State *L) {
   lua_settop(L, 2);
   size_t len;
-  mbedtls_sha256_context *ctx = lua_touserdata(L, 1);
+  SHA256_CONTEXT *context = luaL_checkudata(L, 1, SHA256_CONTEXT_METATABLE);
+  if (context->closed) {
+    lua_pushnil(L);
+    lua_pushstring(L, "context already closed");
+    return 2;
+  }
   const unsigned char *buffer =
       (const unsigned char *)luaL_checklstring(L, 2, &len);
-  mbedtls_sha256_update(ctx, buffer, len);
+  int ret = mbedtls_sha256_update(context->ctx, buffer, len);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
   return 1;
 }
 
 int l_sha256_finish(lua_State *L) {
   lua_settop(L, 2);
-  mbedtls_sha256_context *ctx = lua_touserdata(L, 1);
+  SHA256_CONTEXT *context = luaL_checkudata(L, 1, SHA256_CONTEXT_METATABLE);
+  if (context->closed) {
+    lua_pushnil(L);
+    lua_pushstring(L, "context already closed");
+    return 2;
+  }
   const int hex = lua_toboolean(L, 2);
   unsigned char output[32];
-  mbedtls_sha256_finish(ctx, output);
-  mbedtls_sha256_free(ctx);
+  int ret = mbedtls_sha256_finish(context->ctx, output);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
+  mbedtls_sha256_free(context->ctx);
+  context->closed = 1;
   if (hex) {
     unsigned char hexOutput[64];
     to_hex(output, hexOutput, 32);
@@ -140,32 +197,82 @@ int l_sha256_finish(lua_State *L) {
   return 1;
 }
 
+int l_sha256_close(lua_State *L) {
+  SHA256_CONTEXT *context = luaL_checkudata(L, 1, SHA256_CONTEXT_METATABLE);
+  if (context->closed) {
+    return 0;
+  }
+  mbedtls_sha256_free(context->ctx);
+  context->closed = 1;
+  return 0;
+}
+
 int l_sha512_init(lua_State *L) {
   lua_settop(L, 0);
-  mbedtls_sha512_context *ctx =
-      lua_newuserdata(L, sizeof(mbedtls_sha512_context));
-  mbedtls_sha512_init(ctx);
-  mbedtls_sha512_starts(ctx, 0);
+  SHA512_CONTEXT *context = lua_newuserdata(L, sizeof(SHA512_CONTEXT));
+  context->ctx = malloc(sizeof(mbedtls_sha512_context));
+  context->closed = 0;
+  if (context->ctx == NULL) {
+    lua_pushnil(L);
+    lua_pushstring(L, "failed to allocate memory");
+    return 2;
+  }
+  mbedtls_sha512_init(context->ctx);
+  int ret = mbedtls_sha512_starts(context->ctx, 0);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
+  luaL_getmetatable(L, SHA512_CONTEXT_METATABLE);
+  lua_setmetatable(L, -2);
   return 1;
 }
 
 int l_sha512_update(lua_State *L) {
   lua_settop(L, 2);
   size_t len;
-  mbedtls_sha512_context *ctx = lua_touserdata(L, 1);
+  SHA512_CONTEXT *context = luaL_checkudata(L, 1, SHA512_CONTEXT_METATABLE);
+  if (context->closed) {
+    lua_pushnil(L);
+    lua_pushstring(L, "context already closed");
+    return 2;
+  }
   const unsigned char *buffer =
       (const unsigned char *)luaL_checklstring(L, 2, &len);
-  mbedtls_sha512_update(ctx, buffer, len);
+  int ret = mbedtls_sha512_update(context->ctx, buffer, len);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
   return 1;
 }
 
 int l_sha512_finish(lua_State *L) {
   lua_settop(L, 2);
-  mbedtls_sha512_context *ctx = lua_touserdata(L, 1);
+  SHA512_CONTEXT *context = luaL_checkudata(L, 1, SHA512_CONTEXT_METATABLE);
+  if (context->closed) {
+    lua_pushnil(L);
+    lua_pushstring(L, "context already closed");
+    return 2;
+  }
   const int hex = lua_toboolean(L, 2);
   unsigned char output[64];
-  mbedtls_sha512_finish(ctx, output);
-  mbedtls_sha512_free(ctx);
+  int ret = mbedtls_sha512_finish(context->ctx, output);
+  if (ret != 0) {
+    char error_buf[100];                                 // Error buffer
+    mbedtls_strerror(ret, error_buf, sizeof(error_buf)); // Translate error code
+    lua_pushnil(L);
+    lua_pushstring(L, error_buf);
+    return 2;
+  }
+  mbedtls_sha512_free(context->ctx);
+  context->closed = 1;
   if (hex) {
     unsigned char hexOutput[128];
     to_hex(output, hexOutput, 64);
@@ -176,19 +283,60 @@ int l_sha512_finish(lua_State *L) {
   return 1;
 }
 
-static const struct luaL_Reg lua_hash[] = {{"sha256sum", l_sha256sum},
-                                           {"sha512sum", l_sha512sum},
-                                           {"equals", l_equals},
-                                           {"sha256_init", l_sha256_init},
-                                           {"sha256_update", l_sha256_update},
-                                           {"sha256_finish", l_sha256_finish},
-                                           {"sha512_init", l_sha512_init},
-                                           {"sha512_update", l_sha512_update},
-                                           {"sha512_finish", l_sha512_finish},
-                                           {NULL, NULL}};
+int l_sha512_close(lua_State *L) {
+  SHA512_CONTEXT *context = luaL_checkudata(L, 1, SHA512_CONTEXT_METATABLE);
+  if (context->closed) {
+    return 0;
+  }
+  mbedtls_sha512_free(context->ctx);
+  context->closed = 1;
+  return 0;
+}
 
-int luaopen_lmbed_hash(lua_State *L) {
+int create_sha256_meta(lua_State *L) {
+  luaL_newmetatable(L, SHA256_CONTEXT_METATABLE);
+
+  /* Method table */
   lua_newtable(L);
-  luaL_setfuncs(L, lua_hash, 0);
+  lua_pushcfunction(L, l_sha256_update);
+  lua_setfield(L, -2, "update");
+
+  lua_pushcfunction(L, l_sha256_finish);
+  lua_setfield(L, -2, "finish");
+
+  lua_pushstring(L, SHA256_CONTEXT_METATABLE);
+  lua_setfield(L, -2, "__type");
+
+  /* Metamethods */
+  lua_setfield(L, -2, "__index");
+  lua_pushcfunction(L, l_sha256_close);
+  lua_setfield(L, -2, "__gc");
+  lua_pushcfunction(L, l_sha256_close);
+  lua_setfield(L, -2, "__close");
+
+  return 1;
+}
+
+int create_sha512_meta(lua_State *L) {
+  luaL_newmetatable(L, SHA512_CONTEXT_METATABLE);
+
+  /* Method table */
+  lua_newtable(L);
+  lua_pushcfunction(L, l_sha512_update);
+  lua_setfield(L, -2, "update");
+
+  lua_pushcfunction(L, l_sha512_finish);
+  lua_setfield(L, -2, "finish");
+
+  lua_pushstring(L, SHA512_CONTEXT_METATABLE);
+  lua_setfield(L, -2, "__type");
+
+  /* Metamethods */
+  lua_setfield(L, -2, "__index");
+  lua_pushcfunction(L, l_sha512_close);
+  lua_setfield(L, -2, "__gc");
+  lua_pushcfunction(L, l_sha512_close);
+  lua_setfield(L, -2, "__close");
+
   return 1;
 }
