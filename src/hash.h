@@ -24,7 +24,7 @@
 #define SHA512_CONTEXT_METATABLE "SHA512_CONTEXT"
 
 /*
----#DES 'hash.sha256sum'
+---#DES 'hash.sha256_sum'
 ---
 ---Calculates SHA256 hash of the given data.
 ---@param data string: the data to calculate the hash for.
@@ -33,7 +33,7 @@
 */
 int l_sha256_sum(lua_State *L);
 /*
----#DES 'hash.sha512sum'
+---#DES 'hash.sha512_sum'
 ---
 ---Calculates SHA512 hash of the given data.
 ---@param data string: the data to calculate the hash for.
@@ -53,7 +53,7 @@ int l_sha512_sum(lua_State *L);
 int l_equals(lua_State *L);
 
 /*
----#DES 'hash.sha256init'
+---#DES 'hash.sha256_init'
 ---
 ---Creates a new SHA256 context.
 ---If an error occurs during the initialization, 
@@ -85,7 +85,7 @@ int l_sha256_update(lua_State *L);
 int l_sha256_finish(lua_State *L);
 
 /*
----#DES 'hash.sha512init'
+---#DES 'hash.sha512_init'
 ---
 ---Creates a new SHA512 context.
 ---If an error occurs during the initialization, 
