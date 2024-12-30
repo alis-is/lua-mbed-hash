@@ -29,7 +29,7 @@ static char hex_char_to_lower(const char ch) {
   return ch;
 }
 
-int l_sha256sum(lua_State *L) {
+int l_sha256_sum(lua_State *L) {
   size_t len;
   lua_settop(L, 2);
   const unsigned char *buffer =
@@ -54,7 +54,7 @@ int l_sha256sum(lua_State *L) {
   return 1;
 }
 
-int l_sha512sum(lua_State *L) {
+int l_sha512_sum(lua_State *L) {
   size_t len;
   lua_settop(L, 2);
   const unsigned char *buffer =

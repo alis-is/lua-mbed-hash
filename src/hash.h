@@ -31,7 +31,7 @@
 ---@param hex boolean: whether to return the hash as a hexadecimal string.
 ---@return string|nil, nil|string: the calculated hash, or nil and an error message in case of errors.
 */
-int l_sha256sum(lua_State *L);
+int l_sha256_sum(lua_State *L);
 /*
 ---#DES 'hash.sha512sum'
 ---
@@ -40,7 +40,7 @@ int l_sha256sum(lua_State *L);
 ---@param hex boolean: whether to return the hash as a hexadecimal string.
 ---@return string|nil, nil|string: the calculated hash, or nil and an error message in case of errors.
 */
-int l_sha512sum(lua_State *L);
+int l_sha512_sum(lua_State *L);
 /*
 ---#DES 'hash.equals'
 ---
@@ -117,13 +117,13 @@ int l_sha512_update(lua_State *L);
 int l_sha512_finish(lua_State *L);
 
 typedef struct SHA256_CONTEXT {
-  mbedtls_sha256_context *ctx;
-  int closed;
+	mbedtls_sha256_context *ctx;
+	int closed;
 } SHA256_CONTEXT;
 
 typedef struct SHA512_CONTEXT {
-  mbedtls_sha512_context *ctx;
-  int closed;
+	mbedtls_sha512_context *ctx;
+	int closed;
 } SHA512_CONTEXT;
 
 int create_sha256_meta(lua_State *L);

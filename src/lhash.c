@@ -3,11 +3,11 @@
 #include "lua.h"
 
 static const struct luaL_Reg lua_hash[] = {
-    {"sha256sum", l_sha256sum},
-	{"sha512sum", l_sha512sum},
+    {"sha256_sum", l_sha256_sum},
+	{"sha512_sum", l_sha512_sum},
     {"equals", l_equals},
-	{"sha256init", l_sha256_init},
-    {"sha512init", l_sha512_init},
+	{"sha256_init", l_sha256_init},
+    {"sha512_init", l_sha512_init},
 	{NULL, NULL}};
 
 int luaopen_lmbed_hash(lua_State *L) {
